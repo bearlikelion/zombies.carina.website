@@ -1,0 +1,44 @@
+name: Leaderboard
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pages
+        uses: actions/configure-pages@v5
+      - id: stats
+        run: python3 build.py
+        env:
+          PELICAN_URL: ${{ secrets.PELICAN_URL }}
+          PELICAN_API_KEY: ${{ secrets.PELICAN_API_KEY }}
+          PELICAN_SERVER: ${{ secrets.PELICAN_SERVER }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+          # Scheduled runs skip an unchanged snapshot; pushes and manual runs always publish.
+          FORCE: ${{ github.event_name != 'schedule' }}
+      - if: steps.stats.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - if: steps.stats.outputs.changed == 'true'
+        id: deploy
+        uses: actions/deploy-pages@v4

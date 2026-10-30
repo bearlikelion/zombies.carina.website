@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Muster Roll · Holdfast Zombies</title>
+	<meta name="description" content="Live stats, honors and player profiles from the Holdfast zombie event server.">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+	<link rel="stylesheet" href="style.css">
+	<script src="app.js" defer></script>
+</head>
+<body data-page="roll">
+<header class="masthead">
+	<nav class="nav" aria-label="Site">
+		<a href="./" aria-current="page">Muster Roll</a>
+		<a href="infographic.html">Campaign Report</a>
+	</nav>
+	<p class="dispatch" id="dispatch">Waiting for the first dispatch</p>
+</header>
+<main>
+	<section class="hero">
+		<p class="eyebrow">Holdfast zombie event</p>
+		<h1>The Muster Roll</h1>
+		<p class="ledger" id="ledger"></p>
+	</section>
+	<section aria-labelledby="honors-title">
+		<h2 id="honors-title">Top Honors</h2>
+		<ul class="honors" id="honors"></ul>
+	</section>
+	<section aria-labelledby="roll-title">
+		<div class="roll-head">
+			<h2 id="roll-title">Every soldier</h2>
+			<input type="search" id="search" placeholder="Find a name" aria-label="Find a player by name">
+		</div>
+		<details class="points">
+			<summary>How points are earned</summary>
+			<ul id="points"></ul>
+		</details>
+		<div class="table-wrap">
+			<table id="roll">
+				<thead>
+					<tr class="groups">
+						<th colspan="2"></th>
+						<th colspan="3" class="human">As a human</th>
+						<th colspan="2" class="zombie">As a zombie</th>
+						<th></th>
+					</tr>
+					<tr>
+						<th scope="col" data-key="rank">Rank</th>
+						<th scope="col" data-key="name">Name</th>
+						<th scope="col" data-key="human_kills">Kills</th>
+						<th scope="col" data-key="human_deaths">Deaths</th>
+						<th scope="col" data-key="time_alive">Time alive</th>
+						<th scope="col" data-key="zombie_kills">Kills</th>
+						<th scope="col" data-key="zombie_deaths">Deaths</th>
+						<th scope="col" data-key="points">Points</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+		<p class="empty" id="empty" hidden></p>
+	</section>
+</main>
+</body>
+</html>
