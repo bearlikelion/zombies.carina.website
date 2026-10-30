@@ -309,7 +309,7 @@ async function playerPage() {
 		return;
 	}
 	dispatch(meta);
-	document.title = `${player.name} · Zombies`;
+	document.title = `${player.name} · Holdfast Zombies`;
 	const held = all.honors.filter((honor) => player.honors.includes(honor.key));
 	const records = player.records;
 	const nemesis = player.nemesis;
@@ -600,3 +600,5 @@ async function reportPage() {
 
 const pages = { roll: rollPage, player: playerPage, report: reportPage };
 pages[document.body.dataset.page]?.();
+
+navigator.sendBeacon('https://zombies-carina.arneman.workers.dev', JSON.stringify({ page: location.pathname + location.search, ref: document.referrer }));

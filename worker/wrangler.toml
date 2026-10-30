@@ -1,0 +1,8 @@
+name = "zombies-carina"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "zombies"
+database_id = "fad3660d-66df-4a48-876e-7b42e49bf8c2"
