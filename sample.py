@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # Writes sample.db: 25 made-up players over 30 rounds ending now, for previewing the site without the server.
+# With sample-avatars.json ({steam_id: avatar_url}) beside it, players get those Steam ids; build with STEAM_AVATARS=sample-avatars.json.
+import json
 import random
 import sqlite3
 import sys
@@ -15,6 +17,7 @@ MAPS = ['FortWilly', 'OverTheTop', 'HeroesLanding', 'FortAlFarid', 'Boston', 'Fo
 WEAPONS = ['Musket_Brown_Bess', 'Rifle_Baker', 'Frontlines_Rifle_Lee_Enfield', 'Pistol_Sea_Service', 'Frontlines_Rifle_Gewehr98']
 ROUNDS = 30
 SPACING = 1500
+AVATARS = Path(__file__).resolve().parent / 'sample-avatars.json'
 
 
 def kill(con, round_id, at, killer, killer_side, victim, weapon, last_stand):
@@ -33,7 +36,9 @@ def main(path):
 	con.executescript(SCHEMA)
 	now = time.time() - 120
 	first = now - ROUNDS * SPACING
-	con.executemany('INSERT INTO players (id, playfab_id, name, first_seen, last_seen) VALUES (?, ?, ?, ?, ?)', [(i, f'pf{i}', name, first, now) for i, name in enumerate(NAMES, 1)])
+	steam_ids = list(json.loads(AVATARS.read_text())) if AVATARS.exists() else []
+	con.executemany('INSERT INTO players (id, playfab_id, name, first_seen, last_seen, steam_id) VALUES (?, ?, ?, ?, ?, ?)',
+		[(i, f'pf{i}', name, first, now, steam_ids[i - 1] if i <= len(steam_ids) else None) for i, name in enumerate(NAMES, 1)])
 	for round_id in range(1, ROUNDS + 1):
 		start = first + (round_id - 1) * SPACING
 		length = random.randint(600, 1200)

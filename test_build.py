@@ -88,6 +88,9 @@ def main():
 	assert (summary['rounds'], summary['human_wins'], summary['zombie_wins']) == (2, 1, 1)
 	assert (summary['human_lives_lost'], summary['zombies_defeated'], summary['players']) == (5, 2, 3)
 	assert summary['maps'][0]['rounds'] == 1 and summary['headshots'] == 1
+	assert [(m['map'], m['human_wins'], m['zombie_wins']) for m in summary['maps']] == [('FortWilly', 0, 1), ('OverTheTop', 1, 0)]
+	assert [(w['weapon'], w['kills'], w['headshots']) for w in summary['human_weapons']] == [('Musket_Brown_Bess', 1, 1), ('Rifle_Lee_Enfield', 1, 0)]
+	assert summary['winners'] == 'zh'
 
 	assert set(profile['honors']) == {'survivor', 'slayer', 'hold_the_line', 'last_standing', 'last_stand_hero'}
 	assert [r['map'] for r in profile['recent']] == ['OverTheTop', 'FortWilly']

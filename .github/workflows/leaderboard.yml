@@ -32,6 +32,7 @@ jobs:
           PELICAN_URL: ${{ secrets.PELICAN_URL }}
           PELICAN_API_KEY: ${{ secrets.PELICAN_API_KEY }}
           PELICAN_SERVER: ${{ secrets.PELICAN_SERVER }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           SITE_URL: ${{ steps.pages.outputs.base_url }}
           # Scheduled runs skip an unchanged snapshot; pushes and manual runs always publish.
           FORCE: ${{ github.event_name != 'schedule' }}

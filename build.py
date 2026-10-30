@@ -106,6 +106,7 @@ def window(con, start, end, now, avatars):
 	human_deaths = one(con, f"SELECT count(*) FROM l WHERE side = 'human' AND {DEATH}", now)
 	maps = [dict(row) for row in con.execute(f"""
 		SELECT r.map, count(DISTINCT r.id) AS rounds,
+			sum(r.winner = 'human') AS human_wins, sum(r.winner = 'zombie') AS zombie_wins,
 			(SELECT count(*) FROM l JOIN r r2 ON r2.id = l.round_id WHERE r2.map = r.map AND l.side = 'human' AND {DEATH}) AS human_deaths
 		FROM r GROUP BY r.map ORDER BY rounds DESC, r.map""")]
 	hours = [0] * 24
@@ -126,8 +127,10 @@ def window(con, start, end, now, avatars):
 		'maps': maps,
 		'deadliest_map': max(maps, key=lambda m: m['human_deaths'] / m['rounds'])['map'] if maps else None,
 		'human_weapons': [dict(row) for row in con.execute(
-			"SELECT weapon, count(*) AS kills FROM k WHERE killer_side = 'human' GROUP BY weapon ORDER BY kills DESC LIMIT 8")],
+			"SELECT weapon, count(*) AS kills, sum(headshot) AS headshots FROM k WHERE killer_side = 'human' GROUP BY weapon ORDER BY kills DESC, weapon LIMIT 8")],
 		'kills_by_hour_utc': hours,
+		# One letter per round in start order: h humans held, z zombies won, - no winner.
+		'winners': ''.join({'human': 'h', 'zombie': 'z'}.get(w, '-') for (w,) in con.execute('SELECT winner FROM r ORDER BY started_at, id')),
 	}
 	return {'leaderboard': leaderboard, 'honors': honors, 'summary': summary}
 
@@ -187,6 +190,10 @@ def best(rounds, value):
 def steam_avatars(con):
 	key = os.environ.get('STEAM_API_KEY')
 	ids = dict(con.execute('SELECT steam_id, id FROM players WHERE steam_id IS NOT NULL'))
+	# Previews can map Steam ids to avatar URLs from a local file instead of calling Steam.
+	if os.environ.get('STEAM_AVATARS'):
+		urls = json.loads(Path(os.environ['STEAM_AVATARS']).read_text())
+		return {ids[steam_id]: url for steam_id, url in urls.items() if steam_id in ids}
 	avatars = {}
 	if not key or not ids:
 		return avatars

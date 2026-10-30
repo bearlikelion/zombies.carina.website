@@ -3,66 +3,123 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Muster Roll · Holdfast Zombies</title>
-	<meta name="description" content="Live stats, honors and player profiles from the Holdfast zombie event server.">
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+	<title>Zombies · Top 10</title>
+	<meta name="description" content="The top 10, honors and player profiles from the Holdfast zombie Halloween event hosted by CarinaMachina.">
+	<meta name="theme-color" content="#070505">
+	<link rel="preload" href="fonts/abril-fatface-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" href="fonts/eb-garamond-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" href="fonts/nosifer-latin.woff2" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" href="fonts/cinzel-latin.woff2" as="font" type="font/woff2" crossorigin>
 	<link rel="stylesheet" href="style.css">
 	<script src="app.js" defer></script>
 </head>
 <body data-page="roll">
-<header class="masthead">
+<header class="bezel">
+	<a class="brand" href="./">Zombies <span>carina.website</span></a>
 	<nav class="nav" aria-label="Site">
-		<a href="./" aria-current="page">Muster Roll</a>
-		<a href="infographic.html">Campaign Report</a>
+		<a href="./" aria-current="page">Top 10</a>
+		<a href="./#hall">Top honors</a>
+		<a href="infographic.html">Report</a>
 	</nav>
-	<p class="dispatch" id="dispatch">Waiting for the first dispatch</p>
+	<p class="live" id="dispatch">No scores yet</p>
 </header>
 <main>
-	<section class="hero">
-		<p class="eyebrow">Holdfast zombie event</p>
-		<h1>The Muster Roll</h1>
-		<p class="ledger" id="ledger"></p>
+	<section class="marquee" aria-labelledby="title">
+		<img class="moon" src="moon.webp" alt="" width="1100" height="1100">
+		<h1 class="title" id="title"><span class="title-top">Holdfast</span> <span class="title-main">Zombies</span></h1>
+		<div class="intro">
+			<p class="host">The 4th annual Holdfast Zombie Halloween, hosted by CarinaMachina</p>
+			<ul class="ledger" id="ledger"></ul>
+		</div>
+		<div class="board">
+			<div class="board-head">
+				<h2>Top 10</h2>
+				<label class="entry">Find a player <input type="search" id="search" autocomplete="off" spellcheck="false" placeholder="Your name"></label>
+			</div>
+			<ol class="scores" id="scores"></ol>
+		</div>
+		<aside class="engagement" aria-labelledby="engagement-title">
+			<h2 id="engagement-title">Rules of engagement</h2>
+			<ul class="camps">
+				<li class="side-card human">
+					<h3>Humans</h3>
+					<p class="role">Defenders</p>
+					<ul>
+						<li>One life. No respawns.</li>
+						<li>Hold the line at all costs.</li>
+						<li>Fall, and you rise as a zombie.</li>
+					</ul>
+				</li>
+				<li class="side-card zombie">
+					<h3>Zombies</h3>
+					<p class="role">Attackers</p>
+					<ul>
+						<li>Zombies run fast.</li>
+						<li>Hunt down the living.</li>
+						<li>Every kill grows the horde.</li>
+					</ul>
+				</li>
+			</ul>
+			<div class="last-stand">
+				<span class="rule-icon" data-icon="last_stand_hero" aria-hidden="true"></span>
+				<div>
+					<h3>The Last Stand</h3>
+					<p>With 2:00 left on the clock, defenders get <strong>infinite ammo</strong>.</p>
+				</div>
+			</div>
+			<div class="battlefield">
+				<span class="rule-icon" data-icon="hold_the_line" aria-hidden="true"></span>
+				<div>
+					<h3>The battlefield</h3>
+					<p><strong>26 maps</strong>, all at night</p>
+					<ul class="eras">
+						<li>Nations at War</li>
+						<li>Frontlines</li>
+						<li>American Revolution</li>
+					</ul>
+				</div>
+			</div>
+		</aside>
 	</section>
-	<section aria-labelledby="honors-title">
-		<h2 id="honors-title">Top Honors</h2>
-		<ul class="honors" id="honors"></ul>
+	<section id="hall" aria-labelledby="hall-title">
+		<h2 id="hall-title">Top honors</h2>
+		<ul class="hall" id="honors"></ul>
 	</section>
 	<section aria-labelledby="roll-title">
-		<div class="roll-head">
-			<h2 id="roll-title">Every soldier</h2>
-			<input type="search" id="search" placeholder="Find a name" aria-label="Find a player by name">
-		</div>
-		<details class="points">
-			<summary>How points are earned</summary>
-			<ul id="points"></ul>
-		</details>
-		<div class="table-wrap">
-			<table id="roll">
-				<thead>
-					<tr class="groups">
-						<th colspan="2"></th>
-						<th colspan="3" class="human">As a human</th>
-						<th colspan="2" class="zombie">As a zombie</th>
-						<th></th>
-					</tr>
-					<tr>
-						<th scope="col" data-key="rank">Rank</th>
-						<th scope="col" data-key="name">Name</th>
-						<th scope="col" data-key="human_kills">Kills</th>
-						<th scope="col" data-key="human_deaths">Deaths</th>
-						<th scope="col" data-key="time_alive">Time alive</th>
-						<th scope="col" data-key="zombie_kills">Kills</th>
-						<th scope="col" data-key="zombie_deaths">Deaths</th>
-						<th scope="col" data-key="points">Points</th>
-					</tr>
-				</thead>
-				<tbody></tbody>
-			</table>
-		</div>
+		<h2 id="roll-title">The muster roll</h2>
+		<table class="table" id="roll">
+			<thead>
+				<tr class="group">
+					<th colspan="2"></th>
+					<th colspan="3" class="side">As a human</th>
+					<th colspan="2" class="side zombie">As a zombie</th>
+					<th></th>
+				</tr>
+				<tr>
+					<th scope="col" data-key="rank">Rank</th>
+					<th scope="col" class="player-cell" data-key="name">Player</th>
+					<th scope="col" data-key="human_kills">Kills</th>
+					<th scope="col" data-key="human_deaths">Deaths</th>
+					<th scope="col" data-key="time_alive">Time alive</th>
+					<th scope="col" data-key="zombie_kills">Kills</th>
+					<th scope="col" data-key="zombie_deaths">Deaths</th>
+					<th scope="col" data-key="points">Points</th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+		</table>
+		<nav class="pager" id="pager" aria-label="Muster roll pages" hidden></nav>
 		<p class="empty" id="empty" hidden></p>
 	</section>
+	<section id="rules" aria-labelledby="rules-title">
+		<h2 id="rules-title">How points work</h2>
+		<ul class="rules" id="points"></ul>
+	</section>
+<footer class="foot">
+	<span>zombies.carina.website</span>
+	<span>Scores refresh every few minutes while the server is busy</span>
+	<span>Honor icons by Lorc, Delapouite, Skoll and sbed from <a href="https://game-icons.net/">game-icons.net</a>, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></span>
+</footer>
 </main>
 </body>
 </html>
