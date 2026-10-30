@@ -1,3 +1,4 @@
 # Built from a stats snapshot
 public/data/
 __pycache__/
+sample.db

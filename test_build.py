@@ -8,7 +8,7 @@ from pathlib import Path
 import build
 
 SCHEMA = """
-	CREATE TABLE players (id INTEGER PRIMARY KEY, playfab_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL, first_seen REAL NOT NULL, last_seen REAL NOT NULL);
+	CREATE TABLE players (id INTEGER PRIMARY KEY, playfab_id TEXT NOT NULL UNIQUE, name TEXT NOT NULL, first_seen REAL NOT NULL, last_seen REAL NOT NULL, steam_id TEXT);
 	CREATE TABLE rounds (id INTEGER PRIMARY KEY, map TEXT NOT NULL, mode TEXT NOT NULL, started_at REAL NOT NULL, ended_at REAL, winner TEXT);
 	CREATE TABLE lives (id INTEGER PRIMARY KEY, round_id INTEGER NOT NULL, player_id INTEGER NOT NULL, side TEXT NOT NULL, spawned_at REAL NOT NULL, ended_at REAL, survived INTEGER NOT NULL DEFAULT 0, cause TEXT);
 	CREATE TABLE kills (id INTEGER PRIMARY KEY, round_id INTEGER NOT NULL, at REAL NOT NULL, killer_id INTEGER NOT NULL, killer_side TEXT NOT NULL, victim_id INTEGER, victim_side TEXT NOT NULL, weapon TEXT NOT NULL, headshot INTEGER NOT NULL, last_stand INTEGER NOT NULL);
@@ -21,7 +21,7 @@ A, B, C = 1, 2, 3
 def fixture(path):
 	con = sqlite3.connect(path)
 	con.executescript(SCHEMA)
-	con.executemany('INSERT INTO players VALUES (?, ?, ?, 1000, 3200)', [(A, 'pfA', 'Alice'), (B, 'pfB', 'Bob'), (C, 'pfC', 'Carl')])
+	con.executemany('INSERT INTO players (id, playfab_id, name, first_seen, last_seen) VALUES (?, ?, ?, 1000, 3200)', [(A, 'pfA', 'Alice'), (B, 'pfB', 'Bob'), (C, 'pfC', 'Carl')])
 	con.executemany('INSERT INTO rounds VALUES (?, ?, ?, ?, ?, ?)', [
 		(1, 'FortWilly', 'ArmySiege', 1000, 1600, 'zombie'),
 		(2, 'OverTheTop', 'Invasion', 2000, 3200, 'human'),
@@ -92,6 +92,10 @@ def main():
 	assert set(profile['honors']) == {'survivor', 'slayer', 'hold_the_line', 'last_standing', 'last_stand_hero'}
 	assert [r['map'] for r in profile['recent']] == ['OverTheTop', 'FortWilly']
 	assert profile['recent'][0]['survived'] == 1 and profile['recent'][0]['human_time'] == 1200
+	assert profile['recent'][1]['turned_at'] == 500 and profile['recent'][1]['points'] == 5 + 8
+	assert profile['nemesis'] == {'id': C, 'name': 'Carl', 'avatar': None, 'count': 1}
+	assert profile['prey'] == {'id': C, 'name': 'Carl', 'avatar': None, 'count': 2}
+	assert profile['records']['best_round']['value'] == 5 + 20 + 25 and profile['records']['most_kills']['value'] == 1
 	print('ok')
 
 

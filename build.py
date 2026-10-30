@@ -86,12 +86,13 @@ def one(con, sql, now):
 	return con.execute(sql, {'now': now}).fetchone()[0] or 0
 
 
-def window(con, start, end, now):
+def window(con, start, end, now, avatars):
 	scope(con, start, end)
 	leaderboard = [dict(row) for row in con.execute(LEADERBOARD, {'now': now})]
 	for row in leaderboard:
 		row['time_alive'] = round(row['time_alive'])
 		row['points'] = points(row)
+		row['avatar'] = avatars.get(row['id'])
 	leaderboard.sort(key=lambda row: (-row['points'], row['name'].lower()))
 	for rank, row in enumerate(leaderboard, 1):
 		row['rank'] = rank
@@ -100,7 +101,7 @@ def window(con, start, end, now):
 	for key, title, description, unit, sql in HONORS:
 		top = con.execute(f'SELECT player_id, v FROM ({sql}) WHERE v > 0 ORDER BY v DESC, player_id LIMIT 3', {'now': now}).fetchall()
 		honors.append({'key': key, 'title': title, 'description': description, 'unit': unit,
-			'top': [{'id': pid, 'name': names.get(pid, '?'), 'value': round(v)} for pid, v in top]})
+			'top': [{'id': pid, 'name': names.get(pid, '?'), 'avatar': avatars.get(pid), 'value': round(v)} for pid, v in top]})
 	survived = one(con, "SELECT count(*) FROM l WHERE side = 'human' AND survived", now)
 	human_deaths = one(con, f"SELECT count(*) FROM l WHERE side = 'human' AND {DEATH}", now)
 	maps = [dict(row) for row in con.execute(f"""
@@ -131,21 +132,26 @@ def window(con, start, end, now):
 	return {'leaderboard': leaderboard, 'honors': honors, 'summary': summary}
 
 
-def profile(con, row, honors, now):
+def profile(con, row, honors, now, avatars):
 	pid = {'p': row['id'], 'now': now}
 	maps = [dict(r) for r in con.execute("""
 		SELECT r.map, count(DISTINCT r.id) AS rounds,
 			(SELECT count(*) FROM k JOIN r r2 ON r2.id = k.round_id WHERE r2.map = r.map AND k.killer_id = :p AND k.killer_side = 'human') AS human_kills,
 			(SELECT count(*) FROM k JOIN r r2 ON r2.id = k.round_id WHERE r2.map = r.map AND k.killer_id = :p AND k.killer_side = 'zombie') AS zombie_kills
 		FROM l JOIN r ON r.id = l.round_id WHERE l.player_id = :p GROUP BY r.map ORDER BY rounds DESC""", pid)]
-	recent = [dict(r) for r in con.execute("""
+	rounds = [dict(r) for r in con.execute(f"""
 		SELECT r.id, r.map, r.started_at, r.winner,
+			round(coalesce(r.ended_at, :now) - r.started_at) AS length,
 			round(max(CASE WHEN l.side = 'human' THEN coalesce(l.ended_at, :now) - l.spawned_at END)) AS human_time,
+			round(min(CASE WHEN l.side = 'human' AND l.{DEATH} THEN l.ended_at - r.started_at END)) AS turned_at,
 			max(l.side = 'human' AND l.survived) AS survived,
+			coalesce(sum(l.side = 'zombie' AND l.{DEATH}), 0) AS zombie_deaths,
 			(SELECT count(*) FROM k WHERE k.round_id = r.id AND k.killer_id = :p AND k.killer_side = 'human') AS human_kills,
 			(SELECT count(*) FROM k WHERE k.round_id = r.id AND k.killer_id = :p AND k.killer_side = 'zombie') AS zombie_kills,
 			(SELECT count(*) FROM o WHERE o.round_id = r.id AND o.player_id = :p) AS picked
-		FROM l JOIN r ON r.id = l.round_id WHERE l.player_id = :p GROUP BY r.id ORDER BY r.started_at DESC LIMIT 20""", pid)]
+		FROM l JOIN r ON r.id = l.round_id WHERE l.player_id = :p GROUP BY r.id ORDER BY r.started_at DESC""", pid)]
+	for r in rounds:
+		r['points'] = points({'zombie_kills': r['zombie_kills'], 'human_kills': r['human_kills'], 'time_alive': r['human_time'] or 0, 'rounds_survived': r['survived'] or 0})
 	weapons = [dict(r) for r in con.execute(
 		'SELECT weapon, killer_side AS side, count(*) AS kills FROM k WHERE killer_id = :p GROUP BY weapon, killer_side ORDER BY kills DESC LIMIT 5', pid)]
 	seen = con.execute('SELECT first_seen, last_seen FROM players WHERE id = :p', pid).fetchone()
@@ -155,10 +161,45 @@ def profile(con, row, honors, now):
 		'last_seen': seen[1],
 		'outbreak_picks': con.execute('SELECT count(*) FROM o WHERE player_id = :p', pid).fetchone()[0],
 		'honors': [h['key'] for h in honors if h['top'] and h['top'][0]['id'] == row['id']],
+		'nemesis': rival(con, 'SELECT killer_id AS id, count(*) AS n FROM k WHERE victim_id = :p GROUP BY killer_id', pid, avatars),
+		'prey': rival(con, 'SELECT victim_id AS id, count(*) AS n FROM k WHERE killer_id = :p AND victim_id IS NOT NULL GROUP BY victim_id', pid, avatars),
+		'records': {
+			'longest_life': best(rounds, lambda r: r['human_time'] or 0),
+			'most_kills': best(rounds, lambda r: r['human_kills'] + r['zombie_kills']),
+			'best_round': best(rounds, lambda r: r['points']),
+		},
 		'maps': maps,
-		'recent': recent,
+		'recent': rounds[:20],
 		'weapons': weapons,
 	}
+
+
+def rival(con, sql, params, avatars):
+	top = con.execute(f'SELECT p.id, p.name, t.n FROM ({sql}) AS t JOIN players p ON p.id = t.id ORDER BY t.n DESC, p.id LIMIT 1', params).fetchone()
+	return {'id': top[0], 'name': top[1], 'avatar': avatars.get(top[0]), 'count': top[2]} if top else None
+
+
+def best(rounds, value):
+	top = max(rounds, key=value, default=None)
+	return {'value': value(top), 'map': top['map'], 'started_at': top['started_at']} if top and value(top) else None
+
+
+def steam_avatars(con):
+	key = os.environ.get('STEAM_API_KEY')
+	ids = dict(con.execute('SELECT steam_id, id FROM players WHERE steam_id IS NOT NULL'))
+	avatars = {}
+	if not key or not ids:
+		return avatars
+	steam_ids = list(ids)
+	for i in range(0, len(steam_ids), 100):
+		url = f"https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={key}&steamids={','.join(steam_ids[i:i + 100])}"
+		try:
+			with urllib.request.urlopen(url, timeout=30) as response:
+				for player in json.load(response)['response']['players']:
+					avatars[ids[player['steamid']]] = player['avatarfull']
+		except Exception as error:
+			print(f'Steam avatars unavailable: {error}')
+	return avatars
 
 
 def timestamp(text):
@@ -174,10 +215,11 @@ def build(db, out, now):
 	(data / 'events').mkdir()
 	write = lambda path, value: (data / path).write_text(json.dumps(value, separators=(',', ':')))
 
-	everything = window(con, 0, now + 1, now)
+	avatars = steam_avatars(con)
+	everything = window(con, 0, now + 1, now, avatars)
 	write('all-time.json', everything)
 	for row in everything['leaderboard']:
-		write(f"players/{row['id']}.json", profile(con, row, everything['honors'], now))
+		write(f"players/{row['id']}.json", profile(con, row, everything['honors'], now, avatars))
 
 	events = []
 	for event in json.loads((ROOT / 'events.json').read_text()):
@@ -185,7 +227,7 @@ def build(db, out, now):
 		ended = end <= now
 		events.append({**event, 'ended': ended})
 		if start <= now:
-			write(f"events/{event['slug']}.json", window(con, start, min(end, now + 1), min(end, now)))
+			write(f"events/{event['slug']}.json", window(con, start, min(end, now + 1), min(end, now), avatars))
 
 	write('meta.json', {'generated_at': datetime.now().timestamp(), 'snapshot_at': now, 'points': POINTS, 'events': events})
 	con.close()
